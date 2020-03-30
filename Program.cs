@@ -138,6 +138,14 @@ namespace mdh
                 }
             }
 
+            if (ContextSwitch.GetMode() == 3) // DEBUG MODE
+            {
+                Console.WriteLine("DEBUG MODE Detected!");
+
+                SQLHelper.CreateErrorDB();
+
+            }
+
             #endregion
         }
     }
