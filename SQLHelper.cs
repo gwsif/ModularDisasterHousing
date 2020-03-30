@@ -26,6 +26,12 @@ namespace mdh
             return returnlist;
         }
 
+        /// <summary>
+        /// Runs a given SQL command
+        /// </summary>
+        /// <returns>
+        /// none
+        /// </returns>
         public void Run_Cmd()
         {
           
@@ -43,6 +49,12 @@ namespace mdh
             m_dbConnection.Close();
         }
 
+        /// <summary>
+        /// Adds IP Addresses to a list inside the SQLHelper class
+        /// </summary>
+        /// <returns>
+        /// none
+        /// </returns>
         public void SetIPs()
         {
             SqliteConnection m_dbConnection;
@@ -72,6 +84,12 @@ namespace mdh
             m_dbConnection.Close();
         }
 
+        /// <summary>
+        /// Adds MAC Addresses to a list inside the SQLHelper class
+        /// </summary>
+        /// <returns>
+        /// none
+        /// </returns>
         public void SetIDs()
         {
             SqliteConnection m_dbConnection;
@@ -101,6 +119,12 @@ namespace mdh
             m_dbConnection.Close();
         }
 
+        /// <summary>
+        /// Generates the main Modular Disaster Housing database
+        /// </summary>
+        /// <returns>
+        /// none
+        /// </returns>
         public static void CreateDB()
         {
             SqliteConnection m_dbConnection;
@@ -127,12 +151,25 @@ namespace mdh
             m_dbConnection.Close();
         }
 
-        public static void InsertLevels(string wat, string sew, string pow)
+        /// <summary>
+        /// Creates the error database used by city control
+        /// </summary>
+        /// <returns>
+        /// none
+        /// </returns>
+        public static void CreateErrorDB()
         {
             SqliteConnection m_dbConnection;
-            m_dbConnection = new SqliteConnection("Data Source=mdh.db");
+            m_dbConnection = new SqliteConnection("Data Source=mdherr.db");
             m_dbConnection.Open();
-        }
 
+            // Create our table
+            string err_table = "CREATE TABLE IF NOT EXISTS errors (timestamp INTEGER, unit_id TEXT, code TEXT, message TEXT)";
+
+            SqliteCommand makeErrors = new SqliteCommand(err_table, m_dbConnection);
+
+            // Close the connection
+            m_dbConnection.Close();
+        }
     }
 }

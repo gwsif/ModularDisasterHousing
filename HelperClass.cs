@@ -8,6 +8,12 @@ namespace mdh
 {
     public static class Shell
     {
+        /// <summary>
+        /// Runs a given bash command and returns its output
+        /// </summary>
+        /// <returns>
+        /// A string containing bash output
+        /// </returns>
         public static string ExecBash(this string command)
         {
             var escapedArgs = command.Replace("\"", "\\\"");
@@ -32,14 +38,26 @@ namespace mdh
             
         }
 
-        public static Int32 GenTimeStamp() //potentially unused!
+        /// <summary>
+        /// Generates a unix timestamp of the present time
+        /// </summary>
+        /// <returns>
+        /// A 32-bit integer representing the unix timestamp
+        /// </returns>      
+        public static Int32 GenTimeStamp()
         {
             Int32 unixTimestamp = (Int32)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
 
             return unixTimestamp;
         }
 
-        public static string FormatData(string inputstring) //potentially unused!
+        /// <summary>
+        /// Formats level readings from decimal to percentage
+        /// </summary>
+        /// <returns>
+        /// A string containing the percentages
+        /// </returns>
+        public static string FormatData(string inputstring)
         {
             // Turn the input levels to an array
             string[] levels = inputstring.Split(',');

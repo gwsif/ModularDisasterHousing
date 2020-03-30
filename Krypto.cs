@@ -59,7 +59,6 @@ namespace mdh
         /// A decrypted string
         /// </returns>
         public string Decrypt(string input, string secret)
-
         {
             // Initialize RijndaelManaged
             RijndaelManaged rm = new RijndaelManaged();
@@ -100,9 +99,6 @@ namespace mdh
             string returnString = Encoding.UTF8.GetString(dectext);
 
             return returnString; // return the base64 string
-
-            //return Encoding.UTF8.GetString(TextByte);  //it will return readable string
-
         }
     }
 }

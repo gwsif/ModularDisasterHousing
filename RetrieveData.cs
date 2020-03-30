@@ -54,8 +54,6 @@ namespace mdh
             return rtn;
         }
 
-
-
         /// <summary>
         /// Checks if the given values are between 0 and 1 (inclusive) and logs an error if out of bounds.
         /// </summary>
@@ -77,7 +75,6 @@ namespace mdh
                 {
                     sw.WriteLine(timestamp + " E001 - " + attr + " level not within bounds!");
                     sw.Close();
-
                 }
             }
         }
@@ -87,8 +84,7 @@ namespace mdh
         /// </summary>
         /// <returns>
         /// void
-        /// </returns>
-        
+        /// </returns>     
         public static void CreateFiles()
         {
 
@@ -123,5 +119,4 @@ namespace mdh
             }
         }
     }
-
 }

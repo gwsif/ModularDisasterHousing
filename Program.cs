@@ -126,12 +126,12 @@ namespace mdh
 
                 string stat = ContextSwitch.GetSetup();
 
-                // if the database doesn't exist yet generate it, but do not populate it.
+                // if the error database doesn't exist yet generate it, but do not populate it.
                 if(stat == "pending")
                 {
                     Console.WriteLine("Initializating setup:");
                     Console.WriteLine("Generating Database...");
-                    SQLHelper.CreateDB(); // create the database
+                    SQLHelper.CreateErrorDB(); // create the error database
                     NetworkRW.CitySetup(); // run the city setup
                 }
 

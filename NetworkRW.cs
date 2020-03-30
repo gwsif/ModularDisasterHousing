@@ -42,11 +42,7 @@ namespace mdh
                 // If the type is not a loopback, then get it's MAC Address
                 if (nictype != "Loopback")
                 {
-                    //Console.WriteLine("Found MAC Address: " + m_addr);
-                    //Console.WriteLine("Type: " + nictype);
-                    //Console.WriteLine("Hostname: " + System.Environment.MachineName.ToString());
                     m_addr = nic.GetPhysicalAddress().ToString();
-
                 }
             }
 
@@ -142,9 +138,6 @@ namespace mdh
                             result = "Unavailable";
                         }
 
-                        // format the result to get rid of newline characters
-                        //string cleanresult = Regex.Replace(result, @"\n", "");
-
                         maclist.Add(result); // add it to the list               
                     }
 
@@ -216,9 +209,6 @@ namespace mdh
                 {
                     Console.WriteLine(e.ToString());
                 }
-
-                // Commented out for Testing
-                //listener.Stop();
             }
         }
 
@@ -247,10 +237,7 @@ namespace mdh
                 {
                     // if the id is not our city identifier, proceed with asking for levels
                     if (id.ToString() != cityID) // !potential logic error != continues code, == skips... no idea why?
-                    {
-                        //debugging
-                        //var checkme = id;
-                        
+                    {                        
                         // Tell who we are connecting to
                         Console.WriteLine("Connecting to Unit" + id + "...");
 
@@ -294,10 +281,8 @@ namespace mdh
                     {
                         // echo we're ignoring
                         Console.WriteLine("Skipping City...");
-
                     }
                 }
-
             }
         }
 
@@ -363,10 +348,7 @@ namespace mdh
                     Console.WriteLine(e.ToString()); // if any errors, print them and break
                     break;
                 }
-
-
             }
-
         }
 
         public static void FindCity()
@@ -433,14 +415,17 @@ namespace mdh
                         {
                             Console.WriteLine(e.ToString());
                         }
-
                     }
                 }
             }
         }
 
-        // Initial mode for city - sends identifier, then awaits for acknowledgement to close listening server
-        // returns true if successful, false if unsuccessful.
+        /// <summary>
+        /// listens for a connection from town control and responds with city acknowledgement message
+        /// </summary>
+        /// <returns>
+        /// none
+        /// </returns>
         public static void CitySetup()
         {
             bool done = false;
@@ -469,8 +454,6 @@ namespace mdh
                     Console.WriteLine("Incoming Connection....");
 
                     ns.Write(outgoing_msg, 0, outgoing_msg.Length);
-                    //ns.Close();
-                    //client.Close();
 
                     // Show we sent the data
                     Console.WriteLine("Sent city...");
@@ -493,8 +476,6 @@ namespace mdh
                         ContextSwitch.FinishSetup();
                         break;
                     }
-                    // START THE CLIENT
-                    // IF CLIENT RETURNS TRUE SET DONE = TRUE
                 }
                    
                 catch (Exception e)
@@ -509,6 +490,12 @@ namespace mdh
             listener.Stop();
         }
 
+        /// <summary>
+        /// Initializes the City TCP server
+        /// </summary>
+        /// <returns>
+        /// none
+        /// </returns>
         public static void CityServer()
         {
             bool done = false;
@@ -524,7 +511,6 @@ namespace mdh
 
             while (!done)
             {     
-                //byte[] incoming_msg = Encoding.ASCII.GetBytes(cityID); // Retrieve and convert
                 TcpClient client = listener.AcceptTcpClient(); // accept the connection
 
                 NetworkStream ns = client.GetStream(); // establish a network stream
@@ -556,8 +542,6 @@ namespace mdh
                     {
                         Console.WriteLine("Unable to receive data...");
                     }
-                    // START THE CLIENT
-                    // IF CLIENT RETURNS TRUE SET DONE = TRUE
                 }
                    
                 catch (Exception e)
@@ -566,7 +550,6 @@ namespace mdh
                     break;
                 }
             }
-        }
-      
+        }   
     }
 }
