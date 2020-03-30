@@ -6,7 +6,7 @@ using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
-using System.Threading.Tasks; 
+using System.Threading.Tasks;
 
 namespace mdh
 {
@@ -230,6 +230,9 @@ namespace mdh
             List<string> iplist = getips.Get_List();
             List<string> idlist = getids.Get_List();
 
+            // Make a string for errors
+            String errors = "";
+
             // Now go through down each ip and id in the lists and request the data 
             foreach(var address in iplist)
             {
@@ -270,6 +273,25 @@ namespace mdh
                         // Insert values with associated unit id into Database
                         SQLHelper insertcmd = new SQLHelper("INSERT INTO status VALUES(" + unixTimestamp + "," + "'" + id + "'," + wat + "," + sew + "," + pow +")");
                         insertcmd.Run_Cmd();
+
+                        // Check for errors
+                        errors = RetrieveData.EvaluateLevels(unixTimestamp, id, wat, sew, pow);
+
+                        // If we have errors, pause briefly and then send them!
+                        if(!String.IsNullOrEmpty(errors))
+                        {
+                            Console.WriteLine("Errors detected, sending to city control...");
+                            System.Threading.Thread.Sleep(5000);
+                            try
+                            {
+                                SendError(errors);
+                            }
+
+                            catch (Exception e)
+                            {
+                                Console.WriteLine("Error reporting failed! Please ensure city control is powered on and running");
+                            }
+                        }
 
                         // Report levels
                         Console.WriteLine("Unit " + id + " reports " + wat + " water, " + sew + " sewage, " + pow + " power");
@@ -315,9 +337,9 @@ namespace mdh
                 }
         }
 
-        public static void SendError()
+        public static void SendError(string errmsg)
         {
-            string dummyError = "ERR0, Testing Error Message and Error Message Value!";
+            // string dummyError = "ERR0, Testing Error Message and Error Message Value!";
 
             SQLHelper getCityControl = new SQLHelper("SELECT ip FROM units WHERE unit_id='" + cityID + "'"); //get city IP
             getCityControl.Run_Cmd();
@@ -333,8 +355,7 @@ namespace mdh
 
                 Krypto krypto = new Krypto(); // Start Krypto
 
-                string encErr = krypto.Encrypt(dummyError, AESKey); // Encrypt the data
-
+                string encErr = krypto.Encrypt(errmsg, AESKey); // Encrypt the data
 
                 byte[] outgoing_msg = Encoding.ASCII.GetBytes(encErr); // turn our encrypted message into bytes
 
@@ -521,8 +542,7 @@ namespace mdh
 
                 // try to send our data
                 try
-                {                   
-
+                {
                     Int32 bytes = ns.Read(data, 0 , data.Length);
                     
                     Console.WriteLine("Receiving...");
@@ -534,6 +554,55 @@ namespace mdh
                         Krypto krypto = new Krypto(); // start krypto
                         string decString = krypto.Decrypt(responseString, AESKey); // Decrept the string
                         Console.WriteLine("Success! Received Error " + decString); // write the message we received
+                        
+                        // split the individual errors by the ; delimiter
+                        string[] errors = decString.Split(';'); 
+
+                        // for every error in errors
+                        foreach (var error in errors)
+                        {
+                            // establish placeholders
+                            var time = "";
+                            var uid = "";
+                            var code = "";
+                            var msg = "";
+
+                            // split into columns by the , delimiter
+                            string[] columns = error.Split(",");
+
+                            // for every column in columns
+                            foreach (var column in columns)
+                            {
+                                if(!String.IsNullOrEmpty(column))
+                                {
+                                    if (column.Contains("TIME:"))
+                                    {
+                                        time = column.Substring(column.LastIndexOf(':') + 1);
+                                    }
+
+                                    if (column.Contains("UID:"))
+                                    {
+                                        uid = column.Substring(column.LastIndexOf(':') + 1);
+                                    }
+
+                                    if (column.Contains("CODE:"))
+                                    {
+                                        code = column.Substring(column.LastIndexOf(':') + 1);
+                                    }
+
+                                    if (column.Contains("MSG:"))
+                                    {
+                                        msg = column.Substring(column.LastIndexOf(':') + 1);
+                                    }
+                                }
+                            }
+                            
+                            // Insert the error into the database
+                            SQLHelper insertcmd = new SQLHelper("INSERT INTO errors (timestamp, unit_id, code, message) VALUES(" + time + ",'" + uid +"'," + "'" + code + "'," + "'" + msg + "')");
+                            insertcmd.Run_ErrCmd();
+                        }
+
+                        // Close the network stream and client
                         ns.Close();
                         client.Close();
                     }

@@ -34,9 +34,31 @@ namespace mdh
         /// </returns>
         public void Run_Cmd()
         {
-          
             SqliteConnection m_dbConnection;
             m_dbConnection = new SqliteConnection("Data Source=mdh.db");
+            m_dbConnection.Open();
+
+            // Create our command
+            SqliteCommand command = new SqliteCommand(command_string, m_dbConnection);
+
+            // Execute our command
+            command.ExecuteNonQuery();
+
+            // Close the connection to the DB
+            m_dbConnection.Close();
+        }
+
+
+        /// <summary>
+        /// Runs a given SQL command on the Error database
+        /// </summary>
+        /// <returns>
+        /// none
+        /// </returns>
+        public void Run_ErrCmd()
+        {  
+            SqliteConnection m_dbConnection;
+            m_dbConnection = new SqliteConnection("Data Source=mdherr.db");
             m_dbConnection.Open();
 
             // Create our command

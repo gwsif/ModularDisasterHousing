@@ -80,6 +80,95 @@ namespace mdh
         }
 
         /// <summary>
+        /// Creates a semicolon delimited string of errors based on level readings
+        /// </summary>
+        /// <returns>
+        /// A semicolon delimited string of errors for one unit
+        /// </returns>
+        public static string EvaluateLevels(Int32 timestamp, string unitID, double water, double sewage, double power)
+        {
+            // Establish Error Codes
+            var waterLow = "E01";
+            var sewageLow = "E02";
+            var powerLow = "E03";
+            var waterWarn = "E04";
+            var sewageWarn = "E05";
+            var powerWarn = "E06";
+            var gen = "E07"; // to be used if generator returns a fault
+            var filt = "E08"; // to be used if filter returns a fault
+
+            // Set holder strings for each value
+            string waterErr = "";
+            string sewageErr = "";
+            string powerErr = "";
+
+            // Set holder string used to hold the generated errors
+            string errors = "";
+
+            // Evaluate water
+            if (water <= 0.90)
+            {
+                waterErr = "TIME:" + timestamp + "," + "UID:" + unitID + "," + "CODE:" + waterLow + ",MSG:" + "water level at or below nominal threshold!;";
+
+                if (water <= 0.70)
+                {
+                    waterErr = "TIME:" + timestamp + "," + "UID:" + unitID + "," + "CODE" + waterWarn + ",MSG:" + "water level at or below critical threshold!;";
+                }
+            }
+            
+            // Echo the water error
+            /* NOTE: below is where we would call Wake-On-Lan to our smart-plug controlling
+                the water pump - for now we simply echo the water error until hardware can be
+                procured */
+            if (!String.IsNullOrEmpty(waterErr))
+            {
+                Console.WriteLine(waterErr);
+            }
+
+            // Evaluate sewage
+            if (sewage >= 0.30)
+            {
+                sewageErr = "TIME:" + timestamp + "," + "UID:" + unitID + "," + "CODE:" + sewageLow + ",MSG:" + "sewage level at or above nominal threshold!;";
+
+                if (sewage >= 0.50)
+                {
+                    sewageErr = "TIME:" + timestamp + "," + "UID:" + unitID + "," + "CODE:" + sewageWarn + ",MSG:" + "sewage level at or above critical threshold!;";
+                }
+            }
+
+            // Echo the sewage error
+            if (!String.IsNullOrEmpty(sewageErr))
+            {
+                Console.WriteLine(sewageErr);
+            }
+
+            // Evaluate power
+            if (power <= 0.90)
+            {
+                powerErr = "TIME:" + timestamp + "," + "UID:" + unitID + "," + "CODE:" + powerLow + ",MSG:" + "power level at or below nominal threshold!;";
+
+                if (power <= 0.70)
+                {
+                    powerErr = "TIME:" + timestamp + "," + "UID:" + unitID + "," + "CODE:" + powerWarn + ",MSG:" + "power level at or below critical threshold!;";
+                }
+            }
+
+            // Echo the power error
+            /* NOTE: below is where we would call Wake-On-Lan to our smart-plug controlling
+                the generator - for now we simply echo the power error until hardware can be
+                procured */
+            if (!String.IsNullOrEmpty(powerErr))
+            {
+                Console.WriteLine(powerErr);
+            }
+
+            // Concatenate
+            errors += waterErr + sewageErr + powerErr;
+
+            return errors;
+        }
+
+        /// <summary>
         /// Creates files for water, sewage, and power sensors if they do not exist.
         /// </summary>
         /// <returns>

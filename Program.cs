@@ -46,11 +46,6 @@ namespace mdh
                 {
                     NetworkRW.FindCity();
                 }
-
-                if(args[i] == "--send-errors")
-                {
-                    NetworkRW.SendError();
-                }
             }
             #endregion
         
@@ -114,8 +109,6 @@ namespace mdh
 
                     // When finished, echo the errors to city
                     Console.WriteLine("Sending any errors to city control...");
-                    System.Threading.Thread.Sleep(5000); // pause briefly before continuing
-                    NetworkRW.SendError();
                     Console.WriteLine("Successfully sent errors");
                 }         
             }

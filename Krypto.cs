@@ -98,7 +98,7 @@ namespace mdh
             // format as a string
             string returnString = Encoding.UTF8.GetString(dectext);
 
-            return returnString; // return the base64 string
+            return returnString; // return the string
         }
     }
 }
