@@ -96,7 +96,7 @@ namespace mdh
         public static void TCPScan()
         {
             // run nmap for hostnames
-            string hstcmd = "nmap -sn 192.168.1.0/24 | awk '/scan report/ {print $5}'";
+            string hstcmd = "nmap -sn 192.168.1.0/24 | awk '/scan report/ {print $5}' | awk '/^" + masterhost + "/'";
             var hstouput = hstcmd.ExecBash();
 
             // Parse the hostnames out into a list
@@ -105,7 +105,7 @@ namespace mdh
             // For every entry, If hostname matches masterhost, add the ip
             foreach (var hostname in hostlist)
             {
-                if (hostname == masterhost)
+                if (hostname.Contains(masterhost))
                 {
 
                     // Create a List for the ips
@@ -115,7 +115,7 @@ namespace mdh
                     List<string> maclist = new List<string>();
                     
                     // Get the ips of the recognized hostnames
-                    string getaddr = "nmap -sL 192.168.1.0/24 | grep " + masterhost + "| awk '{print $6}' | tr -d '()'";
+                    string getaddr = "nmap -sL 192.168.1.0/24 | grep " + hostname + "| awk '{print $6}' | tr -d '()'";
                     var ipoutput = getaddr.ExecBash();
                     
                     // Split the outputs and add them to the list
@@ -214,96 +214,109 @@ namespace mdh
 
         public static void TcpTownClient()
         {
+            // Placeholders
+            String received = "";
+
             // Fetch ips in a list
             Console.WriteLine("Fetching IPs");
             SQLHelper getips = new SQLHelper("SELECT ip FROM units");
             getips.Run_Cmd();
             getips.SetIPs();
 
-            // Fetch unit ids in a list
-            Console.WriteLine("Fetching IDs");
-            SQLHelper getids = new SQLHelper("SELECT unit_id FROM units");
-            getids.Run_Cmd();
-            getids.SetIDs();
-            
             // Make a new list for the ips and ids
             List<string> iplist = getips.Get_List();
-            List<string> idlist = getids.Get_List();
+            //List<string> idlist = getids.Get_List();
 
             // Make a string for errors
             String errors = "";
 
+            Console.WriteLine("Beginning Requests...");
+
             // Now go through down each ip and id in the lists and request the data 
-            foreach(var address in iplist)
+            foreach(var ipaddress in iplist)
             {
-                foreach(var id in idlist)
+                // Grab the associated unit address from the database
+                SQLHelper getid = new SQLHelper("SELECT unit_id FROM units WHERE ip='" + ipaddress +"' LIMIT 1");
+                //getid.Run_Reader();
+                string unit_id = getid.RunAndReturnOne();
+
+                // if the id is not our city identifier, proceed with asking for levels
+                if (!unit_id.ToString().Contains(cityID))
                 {
-                    // if the id is not our city identifier, proceed with asking for levels
-                    if (id.ToString() != cityID) // !potential logic error != continues code, == skips... no idea why?
-                    {                        
-                        // Tell who we are connecting to
-                        Console.WriteLine("Connecting to Unit" + id + "...");
+                    // Check if we're the unit before we try opening a network string
+                    string checkipcmd = "hostname -I";
+                    var result = checkipcmd.ExecBash();
+                    result = result.TrimEnd('\r', '\n');
+                    result = result.TrimEnd();
 
-                        // Create a new TCP Client with the address and default port number
-                        var client = new TcpClient(address, portNum);
+                    // if we aren't the unit, proceed
+                    if(ipaddress.ToString() != result)
+                    {
+                            // Create a new TCP Client with the address and default port number
+                            var client = new TcpClient(ipaddress, portNum);
 
-                        // Establish a network Stream
-                        NetworkStream ns = client.GetStream();
+                            // Establish a network Stream
+                            NetworkStream ns = client.GetStream();
 
-                        // Setup a byte array
-                        byte[] bytes = new byte[1024];
+                            // Setup a byte array
+                            byte[] bytes = new byte[1024];
 
-                        // Read the bytes from the network stream into the array
-                        int bytesRead = ns.Read(bytes, 0, bytes.Length);
+                            // Read the bytes from the network stream into the array
+                            int bytesRead = ns.Read(bytes, 0, bytes.Length);
 
-                        // Format to string
-                        string received = Encoding.ASCII.GetString(bytes,0,bytesRead);
-
-                        // Turn the input levels to an array
-                        string[] levels = received.Split(',');
-
-                        // Turn each level into a double
-                        double wat = Convert.ToDouble(levels[0]);
-                        double sew = Convert.ToDouble(levels[1]);
-                        double pow = Convert.ToDouble(levels[2]);
-
-                        // Generate a timestamp
-                        Int32 unixTimestamp = (Int32)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-
-                        // Insert values with associated unit id into Database
-                        SQLHelper insertcmd = new SQLHelper("INSERT INTO status VALUES(" + unixTimestamp + "," + "'" + id + "'," + wat + "," + sew + "," + pow +")");
-                        insertcmd.Run_Cmd();
-
-                        // Check for errors
-                        errors = RetrieveData.EvaluateLevels(unixTimestamp, id, wat, sew, pow);
-
-                        // If we have errors, pause briefly and then send them!
-                        if(!String.IsNullOrEmpty(errors))
-                        {
-                            Console.WriteLine("Errors detected, sending to city control...");
-                            System.Threading.Thread.Sleep(5000);
-                            try
-                            {
-                                SendError(errors);
-                            }
-
-                            catch (Exception e)
-                            {
-                                Console.WriteLine("Error reporting failed! Please ensure city control is powered on and running");
-                            }
-                        }
-
-                        // Report levels
-                        Console.WriteLine("Unit " + id + " reports " + wat + " water, " + sew + " sewage, " + pow + " power");
-
+                            // Format to string
+                            received = Encoding.ASCII.GetString(bytes,0,bytesRead);
                     }
 
-                    // if we are dealing with a city, we need to send the acknowledgement message - sp spin up a server
+                    // if we ARE the unit, read the files locally
                     else
                     {
-                        // echo we're ignoring
-                        Console.WriteLine("Skipping City...");
+                            received = RetrieveData.ReadLevels();
                     }
+                        
+                    // Turn the input levels to an array
+                    string[] levels = received.Split(',');
+
+                    // Turn each level into a double
+                    double wat = Convert.ToDouble(levels[0]);
+                    double sew = Convert.ToDouble(levels[1]);
+                    double pow = Convert.ToDouble(levels[2]);
+
+                    // Generate a timestamp
+                    Int32 unixTimestamp = (Int32)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
+
+                    // Insert values with associated unit id into Database
+                    SQLHelper insertcmd = new SQLHelper("INSERT INTO status VALUES(" + unixTimestamp + "," + "'" + unit_id + "'," + wat + "," + sew + "," + pow +")");
+                    insertcmd.Run_Cmd();                    
+
+                    // Check for errors
+                    errors = RetrieveData.EvaluateLevels(unixTimestamp, unit_id, wat, sew, pow);
+
+                    // If we have errors, pause briefly and then send them!
+                    if(!String.IsNullOrEmpty(errors))
+                    {
+                        Console.WriteLine("Errors detected, sending to city control...");
+                        System.Threading.Thread.Sleep(5000);
+                        try
+                        {
+                            SendError(errors);
+                        }
+
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("Error reporting failed! Please ensure city control is powered on and running");
+                        }
+                    }
+
+                    // Report levels to the console output
+                    Console.WriteLine("Unit " + unit_id + " reports " + wat + " water, " + sew + " sewage, " + pow + " power");  
+                }
+                
+                // if we are dealing with a city, we need to send the acknowledgement message - sp spin up a server
+                else
+                {
+                    // echo we're ignoring
+                    Console.WriteLine("Skipping " + unit_id);
                 }
             }
         }
@@ -381,25 +394,20 @@ namespace mdh
             SQLHelper getips = new SQLHelper("SELECT ip FROM units");
             getips.Run_Cmd();
             getips.SetIPs();
-
-            // Fetch unit ids in a list
-            SQLHelper getids = new SQLHelper("SELECT unit_id FROM units");
-            getids.Run_Cmd();
-            getids.SetIDs();
             
             // Make a new list for the ips and ids
             List<string> iplist = getips.Get_List();
-            List<string> idlist = getids.Get_List();
+            //List<string> idlist = getids.Get_List();
 
-            // Now go through down each ip and id in the lists and request the data 
-            foreach(var address in iplist)
+            // For every ip address in the list, try to establish a connection
+            foreach (var address in iplist)
             {
-                foreach(var id in idlist)
+                try
                 {
-                    // Create a new TCP Client with the address and default port number
+                    // Create a new TCP Client with the address and the default port number
                     var client = new TcpClient(address, portNum);
 
-                    // Establish a network Stream
+                    // Establish a network stream
                     NetworkStream ns = client.GetStream();
 
                     // Setup a byte array
@@ -408,35 +416,33 @@ namespace mdh
                     // Read the bytes from the network stream into the array
                     int bytesRead = ns.Read(incoming_msg, 0, incoming_msg.Length);
 
-                    // Format to string
-                    string received = Encoding.ASCII.GetString(incoming_msg,0,bytesRead);
-                    
-                    // if the message that is received is our defined acknowledement message, we have the town control.
+                    // Format it to a string
+                    string received = Encoding.ASCII.GetString(incoming_msg, 0, bytesRead);
+
+                    // If the message that was received is our defined acknowledgement message, we have the city control!
                     if (received == ackmsg)
                     {
-                        //Change the unit_ID to CCNCS
-                        SQLHelper changeID = new SQLHelper("UPDATE units SET unit_id='CCNCS' WHERE ip= '" + address +"'");
+                        // update the units table with the new unit ID
+                        SQLHelper changeID = new SQLHelper("UPDATE units SET unit_id='CCNCS' WHERE ip='" + address +"'");
                         changeID.Run_Cmd();
 
-                        // Then send the city ACK message
+                        // Now send the town acknowledgement message
                         byte[] outgoing_msg = new byte[1024];
 
-                        // populate the byte array with our acknowledgement message
-                        byte[] byte_cityack = Encoding.ASCII.GetBytes(townackmsg);
+                        // Populate the array with our acknowlegement message
+                        byte[] byte_townack = Encoding.ASCII.GetBytes(townackmsg);
 
-                        // try to write the acknowledgement message
-                        try
-                        {
-                            ns.Write(byte_cityack, 0, byte_cityack.Length);
-                            ns.Close();
-                            client.Close();
-                        }
-
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e.ToString());
-                        }
+                        // Write the acknowledgement message
+                        ns.Write(byte_townack, 0, townackmsg.Length);
+                        ns.Close();
+                        client.Close();
                     }
+                }
+
+                catch
+                {
+                    // if response was inadequate say so and continue
+                    Console.WriteLine("skipping " + address + ": not a city.");
                 }
             }
         }
@@ -556,7 +562,7 @@ namespace mdh
                         Console.WriteLine("Success! Received Error " + decString); // write the message we received
                         
                         // split the individual errors by the ; delimiter
-                        string[] errors = decString.Split(';'); 
+                        string[] errors = decString.Split(';', StringSplitOptions.RemoveEmptyEntries); 
 
                         // for every error in errors
                         foreach (var error in errors)
@@ -600,6 +606,9 @@ namespace mdh
                             // Insert the error into the database
                             SQLHelper insertcmd = new SQLHelper("INSERT INTO errors (timestamp, unit_id, code, message) VALUES(" + time + ",'" + uid +"'," + "'" + code + "'," + "'" + msg + "')");
                             insertcmd.Run_ErrCmd();
+
+                            // Receipt
+                            Console.WriteLine(time + ": ERROR " + code + " | Unit " + uid + " | " + msg);
                         }
 
                         // Close the network stream and client

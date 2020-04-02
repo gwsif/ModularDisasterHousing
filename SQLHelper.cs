@@ -48,6 +48,33 @@ namespace mdh
             m_dbConnection.Close();
         }
 
+        public string RunAndReturnOne()
+        {
+            SqliteConnection m_dbConnection;
+            m_dbConnection = new SqliteConnection("Data Source=mdh.db");
+            m_dbConnection.Open();
+
+            // Create our command
+            SqliteCommand command = new SqliteCommand(command_string, m_dbConnection);
+
+            // Start the reader
+            SqliteDataReader reader = command.ExecuteReader();
+
+            // Declare a holder string
+            string aReturn = "";
+
+            // While the reader has data to read append the text to the a_Return string.
+            while (reader.Read())
+            {
+                aReturn = reader.GetString(0);
+            }
+
+            // Close the connection to the DB
+            m_dbConnection.Close();
+
+            return aReturn;
+        }
+
 
         /// <summary>
         /// Runs a given SQL command on the Error database
@@ -189,6 +216,7 @@ namespace mdh
             string err_table = "CREATE TABLE IF NOT EXISTS errors (timestamp INTEGER, unit_id TEXT, code TEXT, message TEXT)";
 
             SqliteCommand makeErrors = new SqliteCommand(err_table, m_dbConnection);
+            makeErrors.ExecuteNonQuery();
 
             // Close the connection
             m_dbConnection.Close();

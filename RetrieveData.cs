@@ -112,7 +112,7 @@ namespace mdh
 
                 if (water <= 0.70)
                 {
-                    waterErr = "TIME:" + timestamp + "," + "UID:" + unitID + "," + "CODE" + waterWarn + ",MSG:" + "water level at or below critical threshold!;";
+                    waterErr = "TIME:" + timestamp + "," + "UID:" + unitID + "," + "CODE:" + waterWarn + ",MSG:" + "water level at or below critical threshold!;";
                 }
             }
             
